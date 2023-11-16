@@ -2,13 +2,11 @@ from flask import Flask,jsonify,request
 from datetime import datetime
 import mysql.connector
 from flask_cors import CORS
-import base64
-from io import BytesIO
-from PIL import Image
 from werkzeug.utils import secure_filename
 import boto3
 import uuid
 import boto3, botocore
+import os
 
 app = Flask(__name__)
 CORS(app)
@@ -44,17 +42,6 @@ s3 = boto3.client('s3',
                     aws_secret_access_key= app.config['S3_SECRET']
                     )
 
-"""
-s3_config = {
-    'bucketName': "collectifybucket",
-    'albumName' :"images",
-    'region' :'us-east-1',
-    'accessKeyId': 'AKIA6NTYCBG4H4RCIFXS',
-    'secretAccessKey': '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'
-}
-"""
-
-
 # Create a MySQL connection
 db_connection = mysql.connector.connect(**db_config)
 cursor = db_connection.cursor()
@@ -66,25 +53,16 @@ CREATE TABLE IF NOT EXISTS Cards (
     title VARCHAR(100) NOT NULL,
     description TEXT NOT NULL,
     price FLOAT NOT NULL,
-    originalfilename VARCHAR(100) NOT NULL,
-    filename VARCHAR(100) NOT NULL,
-    bucket VARCHAR(100) NOT NULL,
-    region VARCHAR(100) NOT NULL,
-    date DATETIME DEFAULT CURRENT_TIMESTAMP
+    date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    filename VARCHAR(200) NOT NULL,
+    fileURL VARCHAR(200) NOT NULL,
+    filepath VARCHAR(200) NOT NULL
 );
 """
-
 cursor.execute(create_table_query)
 db_connection.commit()
 
-"""
-# single cards serialize
-class Cards:
-    def __init__(self,title,body):
-        self.title = title
-        self.body = body
-"""
-"""
+
 @app.route("/get", methods=["GET"])
 def get_cards():
     select_query = 'SELECT * FROM Cards'
@@ -95,92 +73,82 @@ def get_cards():
     for card in cards:
         result.append({
             'id': card[0],
-            'image': previewUrl,
-            'title': card[2],
-            'description': card[3],
-            'price': card[4],
-            'date': card[5].isoformat()  if card[0] else None,
+            'title': card[1], 
+            'description': card[2],
+            'price': card[3],
+            'date': card[4].isoformat(),
+            'filename': card[5],  
+            'fileURL': card[6],
+            'filepath': card[7]  if card[0] else None,
         })
 
     return jsonify(result)
  
-"""
-def upload_file_to_s3(filename,content, acl="public-read"):
-    """
-    Docs: http://boto3.readthedocs.io/en/latest/guide/s3.html
-    """
-    try:
-        s3.upload_fileobj(
-            content,
-            app.config['S3_BUCKET'],
-            filename,
-            ExtraArgs={
-                "ACL": acl,
-                "ContentType": content.content_type   #Set appropriate content type as per the file
-            }
-        )
-    except Exception as e:
-        print("Something Happened: ", e)
-        return e
-    
-    print("{}{}".format(app.config["S3_LOCATION"], file.filename))
-    return "{}{}".format(app.config["S3_LOCATION"], file.filename)
-
 
 @app.route("/add", methods=["POST"])
 def add_card():
-    image = request.json.get('image')
-    title = request.json.get('title')
-    description = request.json.get('description')
-    price = request.json.get('price')
-    base64_encoded = request.json.get('base64Encoded')
-    previewUrl = request.json.get('previewUrl')
-    binary_file = request.json.get('binary_file')
     
-    payload = request.json.get('payload')
-    filename = payload.get('user_file', {}).get('filename', None)
-    content_base64  = payload.get('user_file', {}).get('content', None)
-   
-   
-    
-    if image is None or title is None or description is None or price is None:
-        return jsonify({'message': 'Invalid request. Title and body are required.'}), 400
-    
-    # Decode Base64 to binary
-    content_bytes  = base64.b64decode(content_base64)
-    
-    #print("\n\n\n",content_bytes,"\n\n\n")
-    output = upload_file_to_s3(filename,content_bytes)
-    return 1
-    #return jsonify(output)
-   
-    """
-    insert_query = 'INSERT INTO Cards (image,title, description,price) VALUES (%s, %s,%s, %s)'
-    data = (image_bytes,title, description,price)
-    cursor.execute(insert_query, data)
-    db_connection.commit()
+    try:
+        # Retrieve form data
+        title = request.form.get('title')
+        description = request.form.get('description')
+        price = request.form.get('price')
 
-    
-    # Fetch the newly added card
-    select_query = 'SELECT * FROM Cards WHERE id = %s'
-    cursor.execute(select_query, (cursor.lastrowid,))
-    new_card = cursor.fetchone()
-    
-    #print("\n\n\n\n ",base64.b64decode(new_card[1]).decode('utf-8'))
-    #print("\n\n\n\n ",new_card[1])
-    if new_card:
-        new_card_dict = {
-            'id': new_card[0],
-            'image':base64.b64encode(new_card[1]).decode('utf-8'), 
-            'title': new_card[2],
-            'description': new_card[3],
-            'price': new_card[4],
-            'date': new_card[5].isoformat()  # Assuming date is the 4th column
-        }
-        return jsonify(new_card_dict)
+        # Retrieve file data
+        image = request.files.get('image')
+        
+        # Generate a unique filename to avoid overwriting existing files
+        filename = secure_filename(image.filename)
+        unique_filename = f"{str(uuid.uuid4())}_{filename}"
+        
+        # Save the file to a temporary location
+        temp_filepath = os.path.join('temp', unique_filename)
+        image.save(temp_filepath)
+        
+        # Upload the file to S3
+        s3.upload_file(
+            temp_filepath,
+            app.config['S3_BUCKET'],
+            unique_filename
+        )
+        # Construct the S3 image URL
+        s3_image_url = f"http://{app.config['S3_BUCKET']}.s3.amazonaws.com/{unique_filename}"
 
-    return jsonify({'message': 'Failed to fetch the newly added card.'}), 500
+        insert_query = 'INSERT INTO Cards (title,description,price,filename,fileURL,filepath) VALUES (%s, %s,%s, %s, %s, %s)'
+        data = (title,description,price,unique_filename,s3_image_url,temp_filepath)
+        cursor.execute(insert_query, data)
+        db_connection.commit()
+        # Remove the temporary file
+        os.remove(temp_filepath)
+    
+        # Return a response (modify as needed)
+        # Fetch the newly added card
+        select_query = 'SELECT * FROM Cards WHERE id = %s'
+        cursor.execute(select_query, (cursor.lastrowid,))
+        new_card = cursor.fetchone()
 
+        
+        if new_card:
+            new_card_dict = {
+                'id': new_card[0],
+                'title': new_card[1], 
+                'description': new_card[2],
+                'price': new_card[3],
+                'date': new_card[4].isoformat(),
+                'filename': new_card[5],  
+                'fileURL': new_card[6],
+                'filepath': new_card[7]
+            }
+            return jsonify(new_card_dict)
+        return jsonify({'message': 'Failed to fetch the newly added card.'}), 500
+
+    except Exception as e:
+        # Handle exceptions appropriately
+        print(f"Error: {str(e)}")
+        return jsonify({'message': 'Error processing the request'}), 500
+    
+ 
+    
 
 # Fetch card details by ID
 @app.route("/get/<id>", methods=["GET"])
@@ -192,11 +160,13 @@ def get_card_details(id):
     if card:
         result = {
             'id': card[0],
-            'image': previewUrl,
-            'title': card[2],
-            'description': card[3],
-            'price': card[4],
-            'date': card[5].isoformat()  if card[0] else None,
+            'title': card[1], 
+            'description': card[2],
+            'price': card[3],
+            'date': card[4].isoformat(),
+            'filename': card[5],  
+            'fileURL': card[6],
+            'filepath': card[7] if card[0] else None,
         }
         return jsonify(result)
     else:
@@ -205,14 +175,35 @@ def get_card_details(id):
 # Update card by ID
 @app.route("/update/<id>", methods=["PUT"])
 def update_card(id):
-    title = request.json['title']
-    body = request.json['body']
+    # Retrieve form data
+    title = request.form.get('title')
+    description = request.form.get('description')
+    price = request.form.get('price')
+
+    # Retrieve file data
+    image = request.files.get('image')
+    # Generate a unique filename to avoid overwriting existing files
+    filename = secure_filename(image.filename)
+    unique_filename = f"{str(uuid.uuid4())}_{filename}"
+    s3_image_url = f"http://{app.config['S3_BUCKET']}.s3.amazonaws.com/{unique_filename}"
+    # Save the file to a temporary location
+    temp_filepath = os.path.join('temp', unique_filename)
+    image.save(temp_filepath)
     
+    # Upload the file to S3
+    s3.upload_file(
+        temp_filepath,
+        app.config['S3_BUCKET'],
+        unique_filename
+    )
     
-    update_query = 'UPDATE Cards SET title = %s, body = %s WHERE id = %s'
-    data = (title, body, id)
+    update_query = 'UPDATE Cards SET title = %s, description = %s, price = %s,filename = %s,fileURL = %s,filepath = %s WHERE id = %s'
+    data = (title,description,price,unique_filename,s3_image_url,temp_filepath,id)
     cursor.execute(update_query, data)
     db_connection.commit()
+    # Remove the temporary file
+    os.remove(temp_filepath)
+    
     
     # Fetch the updated card
     select_query = 'SELECT * FROM Cards WHERE id = %s'
@@ -223,11 +214,13 @@ def update_card(id):
         # Convert the card to a dictionary (or use your CardSchema)
         updated_card_dict = {
             'id': updated_card[0],
-            'image': base64.b64encode(updated_card[1]).decode('utf-8'),
-            'title': updated_card[2],
-            'description': updated_card[3],
-            'price': updated_card[4],
-            'date': updated_card[5].isoformat()  # Assuming date is the 4th column
+            'title': updated_card[1], 
+            'description': updated_card[2],
+            'price': updated_card[3],
+            'date': updated_card[4].isoformat(),
+            'filename': updated_card[5],  
+            'fileURL': updated_card[6],
+            'filepath': updated_card[7] if updated_card[0] else None,
         }
 
         # Return the updated card data
@@ -256,17 +249,17 @@ def delete_card(id):
     # Convert the deleted card to a dictionary (or use your CardSchema)
     deleted_card_dict = {
         'id': deleted_card[0],
-        'image': base64.b64encode(deleted_card[1]).decode('utf-8'),
-        'title': deleted_card[2],
-        'description': deleted_card[3],
-        'price': deleted_card[4],
-        'date': deleted_card[5].isoformat()  # Assuming date is the 4th column
+        'title': deleted_card[1], 
+        'description': deleted_card[2],
+        'price': deleted_card[3],
+        'date': deleted_card[4].isoformat(),
+        'filename': deleted_card[5],  
+        'fileURL': deleted_card[6],
+        'filepath': deleted_card[7] if deleted_card[0] else None,  # Assuming date is the 4th column
     }
 
     # Return information about the deleted card
-    return jsonify({'message': 'Card deleted successfully', 'deleted_card': deleted_card_dict})
-"""
-
+    return jsonify(deleted_card_dict)
 
 
 if __name__ == "__main__":

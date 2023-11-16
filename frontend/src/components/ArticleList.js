@@ -1,6 +1,6 @@
 import React from 'react'
-import APIService from './APIService'
 import '../css/card.css';
+import axios from 'axios';
 
 function ArticleList(props) {
 
@@ -8,17 +8,27 @@ function ArticleList(props) {
     props.editCard(card)
   }
 
-  const deleteCard = (card) =>{
-    APIService.DeleteCard(card.id)
-    .then(()=>props.deleteCard(card))
-  }
-//
+  const deleteCard = async (card) =>{
+    try {
+      const response = await axios.delete(`http://localhost:5000/delete/${card.id}`);
+  
+      // Assuming the response contains the inserted card data
+      const deletedCard = response.data;
+      // Call the callback function with the inserted card data
+      props.deleteCard(deletedCard);
+      console.log(response.data);
+      
+    } catch (error) {
+      console.error("Error deleting card:", error);
+    }
+    };
+
   return (
     <div>
     {props.cards && props.cards.map(card =>{
       return (
         <div className="card" key={card.id}>
-          <img width={100} height={100} src={`data:image/png;base64,${card.image}`} alt=''className="card__img"  />
+          <img src={card.fileURL} alt=''className="card__img" style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto' }} />
           <div className="card__body">
             <h2 className="card__title">{card.title}</h2>
             <p className="card__description">{card.description}</p>

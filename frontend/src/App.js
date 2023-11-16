@@ -2,24 +2,25 @@ import './App.css';
 import React,{useState,useEffect} from 'react';
 import ArticleList from './components/ArticleList'
 import Form from './components/Form'
+import axios from 'axios';
 
 function App() {
 
   const [cards, setCards] = useState([]);
   const [editedCard, seteditedCard] = useState(null);
-  /*
-  useEffect(()=>{
-    fetch(`http://localhost:5000/get`,{ // ` olmalı not "
-      'method':'GET',
-      headers : {
-        'Content-Type':'application/json'
+  
+  useEffect(() => {
+    axios.get('http://localhost:5000/get', {
+      headers: {
+        'Content-Type': 'application/json'
       }
     })
-    .then(response => response.json())
-    .then(response => {console.log(response); setCards(response)})
-    .catch(error => console.log(error))
-
-  },[])*/
+    .then(response => {
+      console.log(response.data);
+      setCards(response.data);
+    })
+    .catch(error => console.error(error));
+  }, []);
 
   const editCard = (card) =>{
     seteditedCard(card)

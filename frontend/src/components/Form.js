@@ -1,83 +1,75 @@
 import React,{useState,useEffect} from 'react'
-import APIService from './APIService'
+import axios from 'axios';
 
 function Form(props) {
 
   const [title, setTitle] = useState(props.card.title);
   const [description, setDescription] = useState(props.card.description);
-  const [image, setImage] = useState(props.card.image); //binary data of the file
-  const [previewUrl , setPreviewUrl ] = useState(props.card.previewUrl); //base64-encoded string representation of the file
-  const [base64Encoded , setbase64Encoded ] = useState(props.card.base64Encoded);
+  const [image, setImage] = useState(props.card.image); 
   const [price, setPrice] = useState(props.card.price);
-  const [binary_file, setbinary_file] = useState(props.card.binary_file);
-  const [payload, setPayload] = useState({ filename: '', content: '' });
+  const [previewUrl, setPreviewUrl] = useState(props.card.title);
 
   useEffect(()=>{
-    setTitle(props.card.title)
-    setDescription(props.card.description)
-    setImage(props.card.image)
-    setPreviewUrl(props.card.previewUrl)
-    setPrice(props.card.price)
+    setTitle(props.card.title || '');
+    setDescription(props.card.description || '');
+    setImage(props.card.image || '');
+    setPrice(props.card.price || '');
+    setPreviewUrl(props.card.previewUrl || '');
   },[props.card])
 
+  const updateCard = async (card) =>{
+    try {
+      const formData = new FormData();
+      formData.append("card_id", props.card.id);
+      formData.append("image", image);
+      formData.append("title", title);
+      formData.append("description", description);
+      formData.append("price", price);
+      formData.append("previewUrl", previewUrl);
 
-  const updateCard = (card) =>{
-    APIService.UpdateCard(props.card.id,{image,title,description,price})
-    .then(resp => props.updatedData(resp)) //data guncellendiginde anlık olarak sayfaya yansıması icin
-    .catch(error => console.log(error))
-  }
-
-  const insertCard = async (card) =>{
-    //console.log(payload.user_file.filename)
-    APIService.InsertCard({image,title,description,price,base64Encoded,previewUrl,binary_file,payload})
-    .then(resp => props.insertedCard(resp)) 
-    .catch(error => console.log(error))
-  }
-
-  /*
-  const handleChange = (e) =>{
-   // e.preventDefault();
-    //console.log(e.target.files)
-    const inFile = e.target.files[0];
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      const base64Encoded = reader.result.split(',')[1]; // Extract the base64-encoded part
-      setbase64Encoded(base64Encoded);
-      setImage(inFile) //infile is binary data of file
-      setPreviewUrl(reader.result) // 'reader.result' is the base64-encoded string representation of the file
-    
-    };
-    reader.readAsDataURL(inFile) //Reads the binary content of the file and converts it to a base64-encoded string
-    //reader.readAsArrayBuffer(inFile) //reads bnary data directly   
-  }
-  */
-  const uploadFile = (fileee) => {
-    const reader = new FileReader();
-    // Read the file as a Data URL (Base64)
-    reader.readAsDataURL(fileee);
-    reader.onloadend = () => {
-      const base64File = reader.result.split(",")[1]; // Extract Base64 content
-      const payload = {
-        user_file: {
-          filename: fileee.name,
-          content: base64File,
-        },
-      };
-    setImage(fileee);  // Set the file directly, not its base64 representation
-    setPreviewUrl(reader.result); // 'reader.result' is the base64-encoded string representation of the file 
-
-    setPayload(payload);
-  };
-};
-
-  const handleFileChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      uploadFile(file);
+      const response = await axios.put(`http://localhost:5000/update/${props.card.id}`, formData);
+  
+      // Assuming the response contains the inserted card data
+      const updatedCard = response.data;
+      // Call the callback function with the inserted card data
+      props.updatedData(updatedCard);
+      console.log(response.data);
+    } catch (error) {
+      console.error("Error inserting card:", error);
     }
   };
 
-// {previewUrl===""||previewUrl==null?"":<img width={100} height={100} src={previewUrl} alt=''/>}
+  const insertCard = async (card) =>{
+  try {
+    const formData = new FormData();
+    formData.append("image", image);
+    formData.append("title", title);
+    formData.append("description", description);
+    formData.append("price", price);
+    formData.append("previewUrl", previewUrl);
+
+    const response = await axios.post(`http://localhost:5000/add`, formData);
+
+    // Assuming the response contains the inserted card data
+    const insertedCard = response.data;
+    // Call the callback function with the inserted card data
+    props.insertedCard(insertedCard);
+
+    console.log(response.data);
+    
+  } catch (error) {
+    console.error("Error inserting card:", error);
+  }
+  };
+
+  const handleImageChange = (e) => {
+    const selectedFile = e.target.files[0];
+    setImage(selectedFile);
+    // If you want to preview the image, you can create a URL for the selected file
+    setPreviewUrl(URL.createObjectURL(selectedFile));
+  };
+
+  
   return (
     <div>
         {props.card ? (
@@ -85,11 +77,11 @@ function Form(props) {
                 <label htmlFor = "image" className='form-label'>Image</label>
                 <input type="file" className="form-control" 
                 placeholder ="Choose a file"
-                onChange={handleFileChange}
+                onChange={handleImageChange}
                 required
                 accept="image/*"
                 />
-
+               {previewUrl===""||previewUrl==null?"":<img width={100} height={100} src={previewUrl} alt=''/>}
               
                 <label htmlFor = "title" className='form-label'>Title</label>
                 <input type="text" className="form-control" 

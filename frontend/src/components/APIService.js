@@ -1,6 +1,6 @@
 export default class APIService{
-    // Insert an article
-    static UpdateArticle(id,body){
+    // Insert an card
+    static UpdateCard(id,body){
     return fetch(`http://localhost:5000/update/${id}`,{
             'method':'PUT',
              headers : {
@@ -12,7 +12,7 @@ export default class APIService{
     .catch(error => console.log(error))
     }
 
-    static InsertArticle(body){
+    static InsertCard(body){
     return fetch(`http://localhost:5000/add`,{
             'method':'POST',
                 headers : {
@@ -24,7 +24,7 @@ export default class APIService{
     .catch(error => console.log(error))
     }
 
-    static DeleteArticle(id){
+    static DeleteCard(id){
         return fetch(`http://localhost:5000/delete/${id}`,{
                 'method':'DELETE',
                  headers : {

@@ -1,6 +1,8 @@
+import axios from 'axios';
+
 export default class APIService{
-    // Insert an article
-    static UpdateArticle(id,body){
+    // Insert an card
+    static UpdateCard(id,body){
     return fetch(`http://localhost:5000/update/${id}`,{
             'method':'PUT',
              headers : {
@@ -12,19 +14,25 @@ export default class APIService{
     .catch(error => console.log(error))
     }
 
-    static InsertArticle(body){
-    return fetch(`http://localhost:5000/add`,{
-            'method':'POST',
-                headers : {
-            'Content-Type':'application/json'
-        },
-        body:JSON.stringify(body)
-    })
-    .then(response => response.json())
-    .catch(error => console.log(error))
-    }
+    static InsertCard = async (body) => {
 
-    static DeleteArticle(id){
+        console.log(body)
+
+        try {
+          const response = await axios.post('http://localhost:5000/add', body, {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+    
+          return response.data;
+        } catch (error) {
+          console.error(error);
+          throw error; // Re-throw the error to handle it in the calling code
+        }
+      }
+
+    static DeleteCard(id){
         return fetch(`http://localhost:5000/delete/${id}`,{
                 'method':'DELETE',
                  headers : {

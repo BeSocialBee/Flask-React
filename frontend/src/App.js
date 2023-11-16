@@ -2,75 +2,76 @@ import './App.css';
 import React,{useState,useEffect} from 'react';
 import ArticleList from './components/ArticleList'
 import Form from './components/Form'
+import axios from 'axios';
 
 function App() {
 
-  const [articles, setArticles] = useState([]);
-  const [editedArticle, seteditedArticle] = useState(null);
-
-  useEffect(()=>{
-    fetch(`http://localhost:5000/get`,{ // ` olmalı not "
-      'method':'GET',
-      headers : {
-        'Content-Type':'application/json'
+  const [cards, setCards] = useState([]);
+  const [editedCard, seteditedCard] = useState(null);
+  
+  useEffect(() => {
+    axios.get('http://localhost:5000/get', {
+      headers: {
+        'Content-Type': 'application/json'
       }
     })
-    .then(response => response.json())
-    .then(response => {console.log(response); setArticles(response)})
-    .catch(error => console.log(error))
+    .then(response => {
+      console.log(response.data);
+      setCards(response.data);
+    })
+    .catch(error => console.error(error));
+  }, []);
 
-  },[])
-
-  const editArticle = (article) =>{
-    seteditedArticle(article)
+  const editCard = (card) =>{
+    seteditedCard(card)
   }
 
-  const updatedData = (article) =>{
-    const new_article = articles.map(my_Article => {
-      if(my_Article.id === article.id){
-        return article
+  const updatedData = (card) =>{
+    const new_card = cards.map(my_card => {
+      if(my_card.id === card.id){
+        return card
       } else{
-        return my_Article
+        return my_card
       }
     })
-    setArticles(new_article)
+    setCards(new_card)
   } 
 
-  const openForm = (article) =>{
-    seteditedArticle({title:"", body:""})
+  const openForm = (card) =>{
+    seteditedCard({image:"",title:"",description:"",price:""})
   } 
 
-  const insertArticle = (article) =>{
-    const new_articles = [...articles,article] //here first I copied previous articles then added new article
-    setArticles(new_articles)
+  const insertCard = (card) =>{
+    const new_cards = [...cards,card] //here first I copied previous cards then added new card
+    setCards(new_cards)
   } 
 
-  const deleteArticle = (article) =>{
-    const new_articles = articles.filter(myarticle=>{
-      if(myarticle.id === article.id){
+  const deleteCard = (card) =>{
+    const new_cards = cards.filter(mycard=>{
+      if(mycard.id === card.id){
         return false
       } else{
         return true
       }
     })
-    setArticles(new_articles)
+    setCards(new_cards)
   }
 
   return (
     <div className="App">
       <div className="row">
         <div className="col">
-        <h1>Flask and ReactJS course</h1>
+        <h1>Collectify</h1>
         </div>
         <div className="col">        
-        <button className="btn btn-success" onClick={openForm}>Insert Article</button>
+        <button className="btn btn-success" onClick={openForm}>Insert Card</button>
         </div>
       </div>
 
       <br/>
       <br/>
-        <ArticleList articles={articles} editArticle={editArticle} deleteArticle={deleteArticle}/>
-        {editedArticle ? <Form article={editedArticle} updatedData={updatedData}  insertedArticle={insertArticle}/> : null} 
+        <ArticleList cards={cards} editCard={editCard} deleteCard={deleteCard}/>
+        {editedCard ? <Form card={editedCard} updatedData={updatedData}  insertedCard={insertCard}/> : null} 
     </div>
   );
 }

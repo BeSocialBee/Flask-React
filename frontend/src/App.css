@@ -5,4 +5,40 @@
   padding: 20px;
 }
 
+.header{
+  display: flex;
+}
+
+.header-search-name{
+  width: 20%;
+}
+
+.header-search{
+  display: flex;
+  justify-content: center;
+  width: 60%;
+  height: 40px;
+}
+
+.header-search input{
+  width: 60%;
+  border-radius: 5px;
+}
+
+.header-search input{
+  padding: 10px;
+}
+
+.header-search button{
+  width: 15%;
+  margin-left: 5px;
+  border-radius: 5px;
+}
+
+
+.header-search button:hover{
+  background-color: antiquewhite;
+}
+
+
 

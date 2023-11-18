@@ -3,11 +3,10 @@ import '../css/card.css';
 import axios from 'axios';
 
 function ArticleList(props) {
-
   const editCard = (card) =>{
     props.editCard(card)
   }
-
+  
   const deleteCard = async (card) =>{
     try {
       const response = await axios.delete(`http://localhost:5000/delete/${card.id}`);
@@ -24,7 +23,7 @@ function ArticleList(props) {
     };
 
   return (
-    <div>
+    <div className='wrapper'>
     {props.cards && props.cards.map(card =>{
       return (
         <div className="card" key={card.id}>
@@ -32,7 +31,7 @@ function ArticleList(props) {
           <div className="card__body">
             <h2 className="card__title">{card.title}</h2>
             <p className="card__description">{card.description}</p>
-            <h3 className="card__price">{card.price}</h3>
+            <h3 className="card__price">$ {card.price}</h3>
             <h3 className="card__date">{card.date}</h3>
             <button className="btn btn-primary" onClick={()=>editCard(card)}>Update</button>
             <button className="btn btn-danger" onClick={()=>deleteCard(card)}>Delete</button>

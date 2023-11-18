@@ -148,11 +148,31 @@ def add_card():
         return jsonify({'message': 'Error processing the request'}), 500
     
  
-    
+# Fetch card details by Title
+@app.route("/get/<string:title>", methods=["GET"])
+def get_card_details_byTitle(title):
+    select_query = 'SELECT * FROM Cards WHERE title LIKE %s'
+    cursor.execute(select_query,('%' + title + '%',))
+    card = cursor.fetchone()
+ 
+    if card:
+        result = {
+            'id': card[0],
+            'title': card[1], 
+            'description': card[2],
+            'price': card[3],
+            'date': card[4].isoformat(),
+            'filename': card[5],  
+            'fileURL': card[6],
+            'filepath': card[7] if card[0] else None,
+        }
+        return jsonify(result)
+    else:
+        return jsonify({'message': 'Card not found'}), 404   
 
 # Fetch card details by ID
-@app.route("/get/<id>", methods=["GET"])
-def get_card_details(id):
+@app.route("/get/<int:id>", methods=["GET"])
+def get_card_details_byID(id):
     select_query = 'SELECT * FROM Cards WHERE id = %s'
     cursor.execute(select_query, (id,))
     card = cursor.fetchone()

@@ -1,5 +1,7 @@
 import React,{useState,useEffect} from 'react'
 import axios from 'axios';
+import '../css/form.css';
+
 
 function Form(props) {
 
@@ -7,7 +9,7 @@ function Form(props) {
   const [description, setDescription] = useState(props.card.description);
   const [image, setImage] = useState(props.card.image); 
   const [price, setPrice] = useState(props.card.price);
-  const [previewUrl, setPreviewUrl] = useState(props.card.title);
+  const [previewUrl, setPreviewUrl] = useState(props.card.previewUrl);
 
   useEffect(()=>{
     setTitle(props.card.title || '');
@@ -73,7 +75,7 @@ function Form(props) {
   return (
     <div>
         {props.card ? (
-            <div className="mb-3">
+            <div className="form-container">
                 <label htmlFor = "image" className='form-label'>Image</label>
                 <input type="file" className="form-control" 
                 placeholder ="Choose a file"
@@ -81,7 +83,8 @@ function Form(props) {
                 required
                 accept="image/*"
                 />
-               {previewUrl===""||previewUrl==null?"":<img width={100} height={100} src={previewUrl} alt=''/>}
+              
+               {previewUrl===""||previewUrl==null?"":<img src={previewUrl} alt='' className="card_show" style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto' }} />}
               
                 <label htmlFor = "title" className='form-label'>Title</label>
                 <input type="text" className="form-control" 

@@ -19,7 +19,7 @@ function Show(props) {
         <h3 className="card__date">{props.searchedCard.date}</h3>
         <button className="btn btn-primary" onClick={()=>ArticleList.editCard(props.searchedCard)}>Update</button>
         <button className="btn btn-danger" onClick={()=>ArticleList.deleteCard(props.searchedCard)}>Delete</button>
-        </div> 
+        </div>
         <button className="btn btn-success" onClick={allCards}>All Cards</button>          
     </div>
     </div>

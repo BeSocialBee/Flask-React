@@ -1,7 +1,8 @@
 /* form.css */
 
 .form-container {
-    width: 100%;
+    display: flex;
+    width: 70%;
     max-width: 600px;
     margin: 0 auto;
     padding: 20px;
@@ -9,9 +10,10 @@
     border-radius: 8px;
     background-color: #fff;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
     gap: 16px;
+  }
+  .form {
+    position: relative;
   }
   
   .form-label {
@@ -21,6 +23,15 @@
   }
   
   .form-control {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 16px;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  
+  .form-coll-select {
     width: 100%;
     padding: 8px;
     margin-bottom: 16px;
@@ -46,4 +57,34 @@
     background-color: #45a049;
     border-color: #45a049;
   }
+
+  .close-button-div{
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+  }
+
+  .close-button {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #555; /* Adjust the color as needed */
+  }
   
+  
+  .close-button:hover {
+    color: #000; /* Change color on hover if desired */
+  }
+  .show-prewiewUrl{
+    display: flex;
+    width: 'auto';
+    height: 'auto';
+  }
+
+  /* Additional styles for show-previewUrl */
+.show-previewUrl img {
+  max-width: 100%;
+  height: auto;
+}
+

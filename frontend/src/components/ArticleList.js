@@ -30,6 +30,7 @@ function ArticleList(props) {
           <img src={card.fileURL} alt=''className="card__img" style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto' }} />
           <div className="card__body">
             <h2 className="card__title">{card.title}</h2>
+            <h2 className="card__collectionName">{card.collectionName}</h2>
             <p className="card__description">{card.description}</p>
             <h3 className="card__price">$ {card.price}</h3>
             <h3 className="card__date">{card.date}</h3>

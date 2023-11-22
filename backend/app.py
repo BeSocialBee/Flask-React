@@ -46,9 +46,24 @@ s3 = boto3.client('s3',
 db_connection = mysql.connector.connect(**db_config)
 cursor = db_connection.cursor()
 
+
+
+# Generate MySQL table if not exists
+create_table_query_collection = """
+CREATE TABLE IF NOT EXISTS Collections (
+    collectionName VARCHAR(50) NOT NULL,
+    id INT AUTO_INCREMENT,
+    PRIMARY KEY(collectionName),
+    UNIQUE KEY (id)
+);
+"""
+cursor.execute(create_table_query_collection)
+db_connection.commit()
+
+
 # Generate MySQL table if not exists
 create_table_query = """
-CREATE TABLE IF NOT EXISTS Cards (
+CREATE TABLE IF NOT EXISTS cards_table (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(100) NOT NULL,
     description TEXT NOT NULL,
@@ -56,17 +71,21 @@ CREATE TABLE IF NOT EXISTS Cards (
     date DATETIME DEFAULT CURRENT_TIMESTAMP,
     filename VARCHAR(200) NOT NULL,
     fileURL VARCHAR(200) NOT NULL,
-    filepath VARCHAR(200) NOT NULL
+    filepath VARCHAR(200) NOT NULL,
+    collectionName VARCHAR(50) NOT NULL,
+    foreign key(collectionName) references Collections(collectionName)
 );
 """
 cursor.execute(create_table_query)
 db_connection.commit()
 
 
-@app.route("/get", methods=["GET"])
+@app.route("/get", methods=["POST"])
 def get_cards():
-    select_query = 'SELECT * FROM Cards'
-    cursor.execute(select_query)
+    collectionName = request.form.get('collectionName')
+    
+    select_query = 'SELECT * FROM cards_table where collectionName = %s'
+    cursor.execute(select_query,(collectionName,))
     cards = cursor.fetchall()
     
     result = []
@@ -79,23 +98,77 @@ def get_cards():
             'date': card[4].isoformat(),
             'filename': card[5],  
             'fileURL': card[6],
-            'filepath': card[7]  if card[0] else None,
+            'filepath': card[7],
+            'collectionName': card[8] if card[0] else None,
         })
 
     return jsonify(result)
  
 
+@app.route("/sort", methods=["POST"])
+def sort_cards():
+    try:
+        # Retrieve form data
+        sortCondition = request.form.get('sortCondition')
+        if not sortCondition:
+            # If sortCondition is not provided, return all cards
+            return get_cards()
+        if(sortCondition=="title-desc"):
+            select_query = 'SELECT * FROM cards_table order by title desc'
+        
+        elif(sortCondition=="title-asc"):
+            select_query = 'SELECT * FROM cards_table order by title asc'
+            
+        elif(sortCondition=="price-desc"):
+            select_query = 'SELECT * FROM cards_table order by price desc'
+        
+        elif(sortCondition=="price-asc"):
+            select_query = 'SELECT * FROM cards_table order by price asc'
+
+        else: 
+            return jsonify({'message': 'Invalid sort condition'}), 400
+    
+        cursor.execute(select_query)
+        cards = cursor.fetchall()
+            
+        result = []
+        for card in cards:
+            result.append({
+                'id': card[0],
+                'title': card[1], 
+                'description': card[2],
+                'price': card[3],
+                'date': card[4].isoformat(),
+                'filename': card[5],  
+                'fileURL': card[6],
+                'filepath': card[7],
+                'collectionName': card[8] if card[0] else None,
+            })
+
+        return jsonify(result)
+    
+    except Exception as e:
+        # Handle exceptions appropriately
+        print(f"Error: {str(e)}")
+        return jsonify({'message': 'Error processing the request'}), 500
+    
+
+
+
 @app.route("/add", methods=["POST"])
 def add_card():
-    
     try:
         # Retrieve form data
         title = request.form.get('title')
+        title = title.strip()
         description = request.form.get('description')
         price = request.form.get('price')
-
+        previewUrl = request.form.get('previewUrl')
+        collectionName = request.form.get('collectionName')
         # Retrieve file data
         image = request.files.get('image')
+        
+        
         
         # Generate a unique filename to avoid overwriting existing files
         filename = secure_filename(image.filename)
@@ -114,8 +187,8 @@ def add_card():
         # Construct the S3 image URL
         s3_image_url = f"http://{app.config['S3_BUCKET']}.s3.amazonaws.com/{unique_filename}"
 
-        insert_query = 'INSERT INTO Cards (title,description,price,filename,fileURL,filepath) VALUES (%s, %s,%s, %s, %s, %s)'
-        data = (title,description,price,unique_filename,s3_image_url,temp_filepath)
+        insert_query = 'INSERT INTO cards_table (title,description,price,filename,fileURL,filepath,collectionName) VALUES (%s, %s,%s, %s, %s, %s, %s)'
+        data = (title,description,price,unique_filename,s3_image_url,temp_filepath,collectionName)
         cursor.execute(insert_query, data)
         db_connection.commit()
         # Remove the temporary file
@@ -123,7 +196,7 @@ def add_card():
     
         # Return a response (modify as needed)
         # Fetch the newly added card
-        select_query = 'SELECT * FROM Cards WHERE id = %s'
+        select_query = 'SELECT * FROM cards_table WHERE id = %s'
         cursor.execute(select_query, (cursor.lastrowid,))
         new_card = cursor.fetchone()
 
@@ -137,7 +210,8 @@ def add_card():
                 'date': new_card[4].isoformat(),
                 'filename': new_card[5],  
                 'fileURL': new_card[6],
-                'filepath': new_card[7]
+                'filepath': new_card[7],
+                'collectionName': new_card[8] if new_card[0] else None,
             }
             return jsonify(new_card_dict)
         return jsonify({'message': 'Failed to fetch the newly added card.'}), 500
@@ -146,13 +220,12 @@ def add_card():
         # Handle exceptions appropriately
         print(f"Error: {str(e)}")
         return jsonify({'message': 'Error processing the request'}), 500
-    
  
 # Fetch card details by Title
 @app.route("/get/<string:title>", methods=["GET"])
 def get_card_details_byTitle(title):
-    select_query = 'SELECT * FROM Cards WHERE title LIKE %s'
-    cursor.execute(select_query,('%' + title + '%',))
+    select_query = 'SELECT * FROM cards_table WHERE title = %s'
+    cursor.execute(select_query,(title,))
     card = cursor.fetchone()
  
     if card:
@@ -164,7 +237,8 @@ def get_card_details_byTitle(title):
             'date': card[4].isoformat(),
             'filename': card[5],  
             'fileURL': card[6],
-            'filepath': card[7] if card[0] else None,
+            'filepath': card[7],
+            'collectionName': card[8] if card[0] else None,
         }
         return jsonify(result)
     else:
@@ -173,7 +247,7 @@ def get_card_details_byTitle(title):
 # Fetch card details by ID
 @app.route("/get/<int:id>", methods=["GET"])
 def get_card_details_byID(id):
-    select_query = 'SELECT * FROM Cards WHERE id = %s'
+    select_query = 'SELECT * FROM cards_table WHERE id = %s'
     cursor.execute(select_query, (id,))
     card = cursor.fetchone()
     
@@ -186,7 +260,8 @@ def get_card_details_byID(id):
             'date': card[4].isoformat(),
             'filename': card[5],  
             'fileURL': card[6],
-            'filepath': card[7] if card[0] else None,
+            'filepath': card[7],
+            'collectionName': card[8] if card[0] else None,
         }
         return jsonify(result)
     else:
@@ -217,7 +292,7 @@ def update_card(id):
         unique_filename
     )
     
-    update_query = 'UPDATE Cards SET title = %s, description = %s, price = %s,filename = %s,fileURL = %s,filepath = %s WHERE id = %s'
+    update_query = 'UPDATE cards_table SET title = %s, description = %s, price = %s,filename = %s,fileURL = %s,filepath = %s WHERE id = %s'
     data = (title,description,price,unique_filename,s3_image_url,temp_filepath,id)
     cursor.execute(update_query, data)
     db_connection.commit()
@@ -226,7 +301,7 @@ def update_card(id):
     
     
     # Fetch the updated card
-    select_query = 'SELECT * FROM Cards WHERE id = %s'
+    select_query = 'SELECT * FROM cards_table WHERE id = %s'
     cursor.execute(select_query, (id,))
     updated_card = cursor.fetchone()
 
@@ -240,7 +315,8 @@ def update_card(id):
             'date': updated_card[4].isoformat(),
             'filename': updated_card[5],  
             'fileURL': updated_card[6],
-            'filepath': updated_card[7] if updated_card[0] else None,
+            'filepath': updated_card[7],
+            'collectionName': updated_card[8] if updated_card[0] else None,
         }
 
         # Return the updated card data
@@ -254,7 +330,7 @@ def update_card(id):
 @app.route("/delete/<id>", methods=["DELETE"])
 def delete_card(id):
     # Fetch the card to be deleted
-    select_query = 'SELECT * FROM Cards WHERE id = %s'
+    select_query = 'SELECT * FROM cards_table WHERE id = %s'
     cursor.execute(select_query, (id,))
     deleted_card = cursor.fetchone()
 
@@ -262,7 +338,7 @@ def delete_card(id):
         return jsonify({'message': 'Card not found'})
 
     # Delete the card from the database
-    delete_query = 'DELETE FROM Cards WHERE id = %s'
+    delete_query = 'DELETE FROM cards_table WHERE id = %s'
     cursor.execute(delete_query, (id,))
     db_connection.commit()
 
@@ -275,12 +351,70 @@ def delete_card(id):
         'date': deleted_card[4].isoformat(),
         'filename': deleted_card[5],  
         'fileURL': deleted_card[6],
-        'filepath': deleted_card[7] if deleted_card[0] else None,  # Assuming date is the 4th column
+        'filepath': deleted_card[7], 
+        'collectionName': deleted_card[8] if deleted_card[0] else None,
     }
 
     # Return information about the deleted card
     return jsonify(deleted_card_dict)
 
+#----------------------------- COLLECTIONS ---------------------------------------------
+@app.route("/addCollection", methods=["POST"])
+def add_collection():
+    try:
+        # Retrieve form data
+        collection_Name = request.form.get('collectionName')
+        collection_Name = collection_Name.strip()
+        
+        insert_query = 'INSERT INTO Collections (collectionName) VALUES (%s)'
+        cursor.execute(insert_query, (collection_Name,))
+        db_connection.commit()
+        
+        # Return a response (modify as needed)
+        # Fetch the newly added collection
+        select_query = 'SELECT * FROM Collections WHERE id = %s'
+        cursor.execute(select_query, (cursor.lastrowid,))
+        new_collection = cursor.fetchone()
+
+        if new_collection:
+            new_collection_dict = {
+                'id': new_collection[1],
+                'collectionName': new_collection[0] if new_collection[0] else None,
+            }
+            return jsonify(new_collection_dict)
+        return jsonify({'message': 'Failed to fetch the newly added card.'}), 500
+
+    except Exception as e:
+        # Handle exceptions appropriately
+        print(f"Error: {str(e)}")
+        return jsonify({'message': 'Error processing the request'}), 500
+    
+    
+
+@app.route("/getCollections", methods=["GET"])
+def get_collections():
+    select_query = 'SELECT * FROM Collections'
+    cursor.execute(select_query)
+    collections = cursor.fetchall()
+    
+    result = []
+    for collection in collections:
+        result.append({
+            'id': collection[1],
+            'collectionName': collection[0] if collection[0] else None,
+        })
+
+    return jsonify(result)
 
 if __name__ == "__main__":
     app.run(debug=True)  
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    	

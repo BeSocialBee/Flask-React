@@ -10,13 +10,26 @@ function Form(props) {
   const [image, setImage] = useState(props.card.image); 
   const [price, setPrice] = useState(props.card.price);
   const [previewUrl, setPreviewUrl] = useState(props.card.previewUrl);
-
+  const [fileURL,setFileURL] = useState(props.card.fileURL);
+  const [collectionName, setCollectionName] = useState(props.card.collectionName);
+  
   useEffect(()=>{
     setTitle(props.card.title || '');
     setDescription(props.card.description || '');
     setImage(props.card.image || '');
     setPrice(props.card.price || '');
     setPreviewUrl(props.card.previewUrl || '');
+    setFileURL(props.card.fileURL || '');
+    setCollectionName(props.card.collectionName || '');
+
+    // Get the form element by ID
+    const formElement = document.getElementById("cardForm");
+
+    // Check if the form element exists
+    if (formElement) {
+      // Scroll to the form element
+      formElement.scrollIntoView({ behavior: "smooth" });
+    }
   },[props.card])
 
   const updateCard = async (card) =>{
@@ -28,6 +41,7 @@ function Form(props) {
       formData.append("description", description);
       formData.append("price", price);
       formData.append("previewUrl", previewUrl);
+      formData.append("collectionName", collectionName);
 
       const response = await axios.put(`http://localhost:5000/update/${props.card.id}`, formData);
   
@@ -36,6 +50,17 @@ function Form(props) {
       // Call the callback function with the inserted card data
       props.updatedData(updatedCard);
       console.log(response.data);
+
+      // Clear the form fields after inserting the card
+      setTitle("");
+      setDescription("");
+      setPrice("");
+      setImage(null);
+      setPreviewUrl(""); 
+      setCollectionName(""); 
+
+      // Reset the file input value to clear it
+      document.getElementById("fileInput").value = "";
     } catch (error) {
       console.error("Error inserting card:", error);
     }
@@ -49,6 +74,7 @@ function Form(props) {
     formData.append("description", description);
     formData.append("price", price);
     formData.append("previewUrl", previewUrl);
+      formData.append("collectionName", collectionName);
 
     const response = await axios.post(`http://localhost:5000/add`, formData);
 
@@ -56,9 +82,18 @@ function Form(props) {
     const insertedCard = response.data;
     // Call the callback function with the inserted card data
     props.insertedCard(insertedCard);
-
     console.log(response.data);
-    
+    // Clear the form fields after inserting the card
+    setTitle("");
+    setDescription("");
+    setPrice("");
+    setImage(null);
+    setPreviewUrl(""); 
+    setCollectionName("");
+
+    // Reset the file input value to clear it
+    document.getElementById("fileInput").value = "";
+
   } catch (error) {
     console.error("Error inserting card:", error);
   }
@@ -71,21 +106,43 @@ function Form(props) {
     setPreviewUrl(URL.createObjectURL(selectedFile));
   };
 
+  const handleClose = () => {
+    // Call a callback function to notify the parent component about the close event if needed
+    // For example, you can define a prop named onClose and pass a callback function from the parent
+    if (props.onClose) {
+      props.onClose();
+    }
+  };
+  
+  //id="fileInput"  // Add this line  /////value={image}   style={{ maxWidth: '100%', height: 'auto' }}
   
   return (
-    <div>
+    <div id="cardForm">
         {props.card ? (
             <div className="form-container">
-                <label htmlFor = "image" className='form-label'>Image</label>
+              <div className='form'>
+              <div className='close-button-div'>
+                <button onClick={handleClose} className="close-button"> &#10006; </button>
+              </div>
+              {/* Close button with a cross sign */}
+               <label htmlFor = "image" className='form-label'>Image</label>
                 <input type="file" className="form-control" 
                 placeholder ="Choose a file"
-                onChange={handleImageChange}
+                onChange={(e) => {handleImageChange(e);}}
                 required
                 accept="image/*"
-                />
-              
-               {previewUrl===""||previewUrl==null?"":<img src={previewUrl} alt='' className="card_show" style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto' }} />}
-              
+                />   
+  
+                <label htmlFor = "collectionName" className='form-label'>Collection Name</label>
+                <select className="form-coll-select" id="selectedCollection" value={collectionName} onChange={(e)=>setCollectionName(e.target.value)}>
+                  <option value="" disabled> Select a collection </option>
+                  {props.collections.map((collection) => (
+                    <option key={collection.id} value={collection.collectionName}>
+                      {collection.collectionName}
+                    </option>
+                  ))}
+                </select>
+
                 <label htmlFor = "title" className='form-label'>Title</label>
                 <input type="text" className="form-control" 
                 placeholder ="Please Enter title"
@@ -111,19 +168,22 @@ function Form(props) {
                 onChange={(e)=>setPrice(e.target.value)}
                 required
                 />
-                
-
                 {
                     props.card.id ? <button  onClick={updateCard} className="btn btn-success mt-3">Update Card</button>
                     :
-                    <button  onClick={insertCard} className="btn btn-success mt-3">Add Card</button> //eger ID yoksa bu insert komutudur
-                }
+                    <div className='addcard-div'>
+                      <button  onClick={insertCard} className="btn btn-success mt-3">Add Card</button>
+                    </div>
+                }  
+              </div>
+              
+              <div className='show-prewiewUrl'>
+                {previewUrl===""||previewUrl==null?"":<img src={previewUrl} alt='' className="card_show" style={{ width: '200px', height: '200px', objectFit: 'cover' }}/>}
+              </div>
 
-                
-            </div>
+              </div>
         ):null}
-
-    </div>
+      </div>
   )
 }
 

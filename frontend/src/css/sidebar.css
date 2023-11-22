@@ -1,0 +1,60 @@
+/* Sidebar.css */
+
+
+.sidebar {
+  width:  100%; /* Set the initial width */
+  height: 100%; /* Set the initial height */
+  background-color: #282c34;
+  bottom: 0; /* Position at the bottom of the screen */
+ /* box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Optional: Add a box shadow for better visibility */
+  transition: width 0.5s, height 0.5s; /* Add transition effect for width and height */
+  display: flex;
+  flex-direction: column;
+}
+
+.icon-container {
+  display: flex;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.sidebar:hover {
+  width: 200px; /* Set the expanded width on hover */
+  height: 150px; /* Set the expanded height on hover */
+}
+
+.menu-icon {
+  font-size: 24px; /* Adjust the font size as needed */
+  cursor: pointer;
+}
+
+
+.title{
+  color: #f1f1f1;
+  font-size: 1.5rem;
+  margin-top: auto;
+  margin-left: 15px;
+}
+
+
+.sidebar.show {
+  left: 0; /* Show the sidebar when the show class is applied */
+}
+
+ul {
+  list-style-type: none;
+  color: #f1f1f1;
+  padding: 0;
+  margin: 0;
+}
+
+li {
+  padding: 8px;
+  color: #f1f1f1;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+li:hover {
+  background-color: #555;
+}

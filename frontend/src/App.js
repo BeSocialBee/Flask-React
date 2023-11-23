@@ -19,7 +19,7 @@ function App() {
   const [searchedTitle, setsearchedTitle] = useState("");
   const [searchedCard, setSearchedCard] = useState(null);
   const [sortCondition, setSortCondition] = useState(""); // Add state for sorting condition
-  const [openFormType, setOpenFormType] = useState(null);
+  const [openFormType, setOpenFormType] = useState("");
 
   /* collection */
   const [collections, setCollections] = useState([]);
@@ -207,23 +207,34 @@ function App() {
             <span class="menu-icon" onMouseOver={openSidebar} >&#9776;</span>  
             <h3 className='title'>Collections</h3>
           </div>
+          <div onMouseLeave={closeSidebar}>
           {sidebarOpen && <Sidebar closeSidebar={closeSidebar} collections={collections} handleCollectionClick={handleCollectionClick} />}
+          </div>
         </div>
 
         <br/>
         <br/>
         {!(searchedCard==="" || searchedCard===null) ? <Show searchedCard={searchedCard} fetchData={fetchData}/> : <ArticleList cards={cards} editCard={editCard} deleteCard={deleteCard} />}
         {/* Add more routes as needed */}
-        {openFormType === "card" && (
+        
+        {/*<ArticleList cards={cards} editCard={editCard} deleteCard={deleteCard}/>*/}
+        {(editedCard && openFormType === "card") ? <Form onClose={handleCloseForm} card={editedCard} updatedData={updatedData}  collections={collections}  insertedCard={insertCard}/> : null} 
+        {(editedCollection && openFormType === "collection") ?  <CollectionForm onClose={handleCloseCollectionForm} collection={editedCollection} insertedCollection={insertCollection} /> : null} 
+        
+        </div>
+      </div>
+  );
+}
+
+/**
+ * {openFormType === "card" && (
           <Form onClose={handleCloseForm} card={editedCard} updatedData={updatedData} insertedCard={insertCard} collections={collections} />
         )}
 
         {openFormType === "collection" && (
           <CollectionForm onClose={handleCloseCollectionForm} collection={editedCollection} insertedCollection={insertCollection} />
-        )}</div>
-      </div>
-  );
-}
+        )}
+ */
 // <Route path="/:title" element={searchedCard && <Show searchedCard={searchedCard} />} />
 
 export default App;

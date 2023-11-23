@@ -4,11 +4,9 @@ import React from 'react';
 import '../css/sidebar.css';
 
 function Sidebar(props) {
-    
-  console.log(props.collections);
 
   return (
-    <div className="sidebar" onMouseOut={props.closeSidebar}>
+    <div>
       <ul>
         {props.collections.map((collection) => (
           <li key={collection.id} onClick={() => props.handleCollectionClick(collection)}>

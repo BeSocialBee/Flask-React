@@ -63,7 +63,7 @@ db_connection.commit()
 
 # Generate MySQL table if not exists
 create_table_query = """
-CREATE TABLE IF NOT EXISTS cards_table (
+CREATE TABLE IF NOT EXISTS Cards (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(100) NOT NULL,
     description TEXT NOT NULL,
@@ -84,7 +84,7 @@ db_connection.commit()
 def get_cards():
     collectionName = request.form.get('collectionName')
     
-    select_query = 'SELECT * FROM cards_table where collectionName = %s'
+    select_query = 'SELECT * FROM Cards where collectionName = %s'
     cursor.execute(select_query,(collectionName,))
     cards = cursor.fetchall()
     
@@ -114,16 +114,16 @@ def sort_cards():
             # If sortCondition is not provided, return all cards
             return get_cards()
         if(sortCondition=="title-desc"):
-            select_query = 'SELECT * FROM cards_table order by title desc'
+            select_query = 'SELECT * FROM Cards order by title desc'
         
         elif(sortCondition=="title-asc"):
-            select_query = 'SELECT * FROM cards_table order by title asc'
+            select_query = 'SELECT * FROM Cards order by title asc'
             
         elif(sortCondition=="price-desc"):
-            select_query = 'SELECT * FROM cards_table order by price desc'
+            select_query = 'SELECT * FROM Cards order by price desc'
         
         elif(sortCondition=="price-asc"):
-            select_query = 'SELECT * FROM cards_table order by price asc'
+            select_query = 'SELECT * FROM Cards order by price asc'
 
         else: 
             return jsonify({'message': 'Invalid sort condition'}), 400
@@ -187,7 +187,7 @@ def add_card():
         # Construct the S3 image URL
         s3_image_url = f"http://{app.config['S3_BUCKET']}.s3.amazonaws.com/{unique_filename}"
 
-        insert_query = 'INSERT INTO cards_table (title,description,price,filename,fileURL,filepath,collectionName) VALUES (%s, %s,%s, %s, %s, %s, %s)'
+        insert_query = 'INSERT INTO Cards (title,description,price,filename,fileURL,filepath,collectionName) VALUES (%s, %s,%s, %s, %s, %s, %s)'
         data = (title,description,price,unique_filename,s3_image_url,temp_filepath,collectionName)
         cursor.execute(insert_query, data)
         db_connection.commit()
@@ -196,7 +196,7 @@ def add_card():
     
         # Return a response (modify as needed)
         # Fetch the newly added card
-        select_query = 'SELECT * FROM cards_table WHERE id = %s'
+        select_query = 'SELECT * FROM Cards WHERE id = %s'
         cursor.execute(select_query, (cursor.lastrowid,))
         new_card = cursor.fetchone()
 
@@ -224,7 +224,7 @@ def add_card():
 # Fetch card details by Title
 @app.route("/get/<string:title>", methods=["GET"])
 def get_card_details_byTitle(title):
-    select_query = 'SELECT * FROM cards_table WHERE title = %s'
+    select_query = 'SELECT * FROM Cards WHERE title = %s'
     cursor.execute(select_query,(title,))
     card = cursor.fetchone()
  
@@ -247,7 +247,7 @@ def get_card_details_byTitle(title):
 # Fetch card details by ID
 @app.route("/get/<int:id>", methods=["GET"])
 def get_card_details_byID(id):
-    select_query = 'SELECT * FROM cards_table WHERE id = %s'
+    select_query = 'SELECT * FROM Cards WHERE id = %s'
     cursor.execute(select_query, (id,))
     card = cursor.fetchone()
     
@@ -292,7 +292,7 @@ def update_card(id):
         unique_filename
     )
     
-    update_query = 'UPDATE cards_table SET title = %s, description = %s, price = %s,filename = %s,fileURL = %s,filepath = %s WHERE id = %s'
+    update_query = 'UPDATE Cards SET title = %s, description = %s, price = %s,filename = %s,fileURL = %s,filepath = %s WHERE id = %s'
     data = (title,description,price,unique_filename,s3_image_url,temp_filepath,id)
     cursor.execute(update_query, data)
     db_connection.commit()
@@ -301,7 +301,7 @@ def update_card(id):
     
     
     # Fetch the updated card
-    select_query = 'SELECT * FROM cards_table WHERE id = %s'
+    select_query = 'SELECT * FROM Cards WHERE id = %s'
     cursor.execute(select_query, (id,))
     updated_card = cursor.fetchone()
 
@@ -330,7 +330,7 @@ def update_card(id):
 @app.route("/delete/<id>", methods=["DELETE"])
 def delete_card(id):
     # Fetch the card to be deleted
-    select_query = 'SELECT * FROM cards_table WHERE id = %s'
+    select_query = 'SELECT * FROM Cards WHERE id = %s'
     cursor.execute(select_query, (id,))
     deleted_card = cursor.fetchone()
 
@@ -338,7 +338,7 @@ def delete_card(id):
         return jsonify({'message': 'Card not found'})
 
     # Delete the card from the database
-    delete_query = 'DELETE FROM cards_table WHERE id = %s'
+    delete_query = 'DELETE FROM Cards WHERE id = %s'
     cursor.execute(delete_query, (id,))
     db_connection.commit()
 

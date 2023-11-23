@@ -6,10 +6,14 @@
   height: 100%; /* Set the initial height */
   background-color: #282c34;
   bottom: 0; /* Position at the bottom of the screen */
- /* box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Optional: Add a box shadow for better visibility */
+  /*box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Optional: Add a box shadow for better visibility */
   transition: width 0.5s, height 0.5s; /* Add transition effect for width and height */
   display: flex;
   flex-direction: column;
+}
+
+.test{
+  border:1px solid red;
 }
 
 .icon-container {
@@ -19,8 +23,8 @@
 }
 
 .sidebar:hover {
-  width: 200px; /* Set the expanded width on hover */
-  height: 150px; /* Set the expanded height on hover */
+  width:  100%; /* Set the expanded width on hover */
+  height:  100%; /* Set the expanded height on hover */
 }
 
 .menu-icon {

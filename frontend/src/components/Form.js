@@ -132,7 +132,7 @@ function Form(props) {
                 required
                 accept="image/*"
                 />   
-  
+                
                 <label htmlFor = "collectionName" className='form-label'>Collection Name</label>
                 <select className="form-coll-select" id="selectedCollection" value={collectionName} onChange={(e)=>setCollectionName(e.target.value)}>
                   <option value="" disabled> Select a collection </option>
@@ -141,7 +141,7 @@ function Form(props) {
                       {collection.collectionName}
                     </option>
                   ))}
-                </select>
+                  </select> 
 
                 <label htmlFor = "title" className='form-label'>Title</label>
                 <input type="text" className="form-control" 
